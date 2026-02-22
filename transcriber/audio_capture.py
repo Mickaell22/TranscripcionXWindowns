@@ -13,8 +13,10 @@ class AudioCapture:
     def __init__(self, on_chunk_ready):
         self.on_chunk_ready = on_chunk_ready
         self._running = False
-        self._mic_buffer = AudioBuffer("MIC", on_chunk_ready)
-        self._sys_buffer = AudioBuffer("SISTEMA", on_chunk_ready)
+        # Usar lambda para que siempre llame a self.on_chunk_ready actual,
+        # no la referencia que se pase al constructor (puede ser None al inicio)
+        self._mic_buffer = AudioBuffer("MIC", lambda c, s: self.on_chunk_ready(c, s))
+        self._sys_buffer = AudioBuffer("SISTEMA", lambda c, s: self.on_chunk_ready(c, s))
         self._mic_stream = None
         self._pyaudio = None
         self._loopback_stream = None
@@ -41,20 +43,29 @@ class AudioCapture:
         self._sys_buffer.flush()
 
     def _start_mic(self):
+        # Capture at native device rate and resample to 16000Hz
+        device_info = sd.query_devices(kind="input")
+        native_rate = int(device_info["default_samplerate"])
+
         def callback(indata, frames, time, status):
             if not self._running:
                 return
             audio = indata[:, 0].astype(np.float32)
-            self._mic_buffer.push(audio)
+            if native_rate != SAMPLE_RATE:
+                from scipy.signal import resample_poly
+                g = gcd(SAMPLE_RATE, native_rate)
+                audio = resample_poly(audio, SAMPLE_RATE // g, native_rate // g)
+            self._mic_buffer.push(audio.astype(np.float32))
 
         self._mic_stream = sd.InputStream(
-            samplerate=SAMPLE_RATE,
+            samplerate=native_rate,
             channels=1,
             dtype="float32",
             callback=callback,
             blocksize=4096,
         )
         self._mic_stream.start()
+        print(f"[OK] Mic activo @ {native_rate}Hz -> resampleando a {SAMPLE_RATE}Hz")
 
     def _start_loopback(self):
         try:
@@ -71,15 +82,18 @@ class AudioCapture:
                 wasapi_info["defaultOutputDevice"]
             )
 
-            loopback_device = None
-            for loopback in self._pyaudio.get_loopback_device_info_generator():
-                if default_speakers["name"] in loopback["name"]:
-                    loopback_device = loopback
-                    break
-
-            if loopback_device is None:
-                print("[WARN] No se encontro dispositivo loopback WASAPI.")
-                return
+            # Si el dispositivo por defecto ya es loopback, usarlo directamente
+            if not default_speakers.get("isLoopbackDevice", False):
+                loopback_device = None
+                for loopback in self._pyaudio.get_loopback_device_info_generator():
+                    if default_speakers["name"] in loopback["name"]:
+                        loopback_device = loopback
+                        break
+                if loopback_device is None:
+                    print("[WARN] No se encontro dispositivo loopback WASAPI.")
+                    return
+            else:
+                loopback_device = default_speakers
 
             device_rate = int(loopback_device["defaultSampleRate"])
             channels = min(int(loopback_device["maxInputChannels"]), 2)

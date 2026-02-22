@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(cd:*)",
-      "Bash(cd:)"
+      "Bash(cd:)",
+      "Bash(cd \"/c/Users/ASUS/Documents/GitHub/Transcripcion\" && python -m venv venv 2>&1)",
+      "Bash(cd \"/c/Users/ASUS/Documents/GitHub/Transcripcion\" && venv/Scripts/pip install faster-whisper pyaudiowpatch sounddevice customtkinter numpy scipy 2>&1)",
+      "Bash(cd \"/c/Users/ASUS/Documents/GitHub/Transcripcion\" && venv/Scripts/pip install nvidia-cublas-cu12 nvidia-cudnn-cu12 2>&1)",
+      "Bash(cd \"/c/Users/ASUS/Documents/GitHub/Transcripcion\" && venv/Scripts/python -c \"\nimport sounddevice as sd\nimport pyaudiowpatch as pyaudio\nimport numpy as np\nimport customtkinter\nimport scipy\nprint\\('sounddevice OK:', sd.__version__\\)\nprint\\('pyaudiowpatch OK'\\)\nprint\\('numpy OK:', np.__version__\\)\nprint\\('customtkinter OK:', customtkinter.__version__\\)\nprint\\('scipy OK:', scipy.__version__\\)\n\n# Check CUDA\nimport ctranslate2\nproviders = ctranslate2.get_supported_compute_types\\('cuda'\\)\nprint\\('CUDA compute types:', providers\\)\n\" 2>&1)",
+      "Bash(cd \"/c/Users/ASUS/Documents/GitHub/Transcripcion\" && venv/Scripts/python -c \"\nimport sounddevice as sd\nimport pyaudiowpatch as pyaudio\n\nprint\\('=== MICROFONO \\(sounddevice\\) ==='\\)\nprint\\(sd.query_devices\\(kind='input'\\)\\)\n\nprint\\(\\)\nprint\\('=== LOOPBACK WASAPI \\(pyaudiowpatch\\) ==='\\)\np = pyaudio.PyAudio\\(\\)\ntry:\n    wasapi_info = p.get_host_api_info_by_type\\(pyaudio.paWASAPI\\)\n    default_out = p.get_device_info_by_index\\(wasapi_info['defaultOutputDevice']\\)\n    print\\('Default output:', default_out['name']\\)\n    print\\(\\)\n    print\\('Dispositivos loopback disponibles:'\\)\n    for lb in p.get_loopback_device_info_generator\\(\\):\n        print\\(' -', lb['name'], '@ rate:', int\\(lb['defaultSampleRate']\\)\\)\nfinally:\n    p.terminate\\(\\)\n\" 2>&1)",
+      "Bash(true:*)",
+      "Bash(cd \"/c/Users/ASUS/Documents/GitHub/Transcripcion\" && venv/Scripts/python -c \"\nimport ast, os\n\nfiles = [\n    'main.py',\n    'transcriber/buffer.py',\n    'transcriber/audio_capture.py',\n    'transcriber/transcription.py',\n    'ui/app.py',\n]\nall_ok = True\nfor f in files:\n    with open\\(f\\) as fh:\n        src = fh.read\\(\\)\n    try:\n        ast.parse\\(src\\)\n        print\\(f'  OK  {f}'\\)\n    except SyntaxError as e:\n        print\\(f'  ERROR {f}: {e}'\\)\n        all_ok = False\n\nprint\\(\\)\nprint\\('Todos los archivos OK' if all_ok else 'Hay errores de sintaxis'\\)\n\" 2>&1)",
+      "Bash(cd \"/c/Users/ASUS/Documents/GitHub/Transcripcion\" && venv/Scripts/python -c \"\nimport ast\n\nfiles = [\n    'main.py',\n    'transcriber/buffer.py',\n    'transcriber/audio_capture.py',\n    'transcriber/transcription.py',\n    'ui/app.py',\n]\nall_ok = True\nfor f in files:\n    with open\\(f, encoding='utf-8'\\) as fh:\n        src = fh.read\\(\\)\n    try:\n        ast.parse\\(src\\)\n        print\\('  OK ', f\\)\n    except SyntaxError as e:\n        print\\('  ERR', f, str\\(e\\)\\)\n        all_ok = False\n\nprint\\('Todos OK' if all_ok else 'Hay errores'\\)\n\" 2>&1)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch"
     ]
   }
 }
