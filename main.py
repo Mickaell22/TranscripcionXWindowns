@@ -23,6 +23,10 @@ def main():
 
     app = App(on_start=on_start, on_stop=on_stop)
 
+    capture.on_waveform = lambda audio, source: app.after(
+        0, lambda a=audio, s=source: app.push_waveform(a, s)
+    )
+
     def load_model():
         worker.load_model(
             progress_callback=lambda msg: app.after(

@@ -10,8 +10,9 @@ from .buffer import AudioBuffer, SAMPLE_RATE
 class AudioCapture:
     """Manages two capture threads: microphone and WASAPI loopback."""
 
-    def __init__(self, on_chunk_ready):
+    def __init__(self, on_chunk_ready, on_waveform=None):
         self.on_chunk_ready = on_chunk_ready
+        self.on_waveform = on_waveform   # callback(audio: np.ndarray, source: str)
         self._running = False
         # Usar lambda para que siempre llame a self.on_chunk_ready actual,
         # no la referencia que se pase al constructor (puede ser None al inicio)
@@ -51,6 +52,8 @@ class AudioCapture:
             if not self._running:
                 return
             audio = indata[:, 0].astype(np.float32)
+            if self.on_waveform:
+                self.on_waveform(audio, "MIC")
             if native_rate != SAMPLE_RATE:
                 from scipy.signal import resample_poly
                 g = gcd(SAMPLE_RATE, native_rate)
@@ -106,6 +109,9 @@ class AudioCapture:
 
                 if channels == 2:
                     audio = audio.reshape(-1, 2).mean(axis=1)
+
+                if self.on_waveform:
+                    self.on_waveform(audio, "SISTEMA")
 
                 if device_rate != SAMPLE_RATE:
                     from scipy.signal import resample_poly

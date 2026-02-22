@@ -3,6 +3,7 @@ from tkinter import filedialog
 import tkinter as tk
 
 import customtkinter as ctk
+from ui.waveform import WaveformWidget
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -54,14 +55,15 @@ class App(ctk.CTk):
         )
         self.status_label.pack(side="right", padx=20)
 
-        # ---- legend ----
-        legend = ctk.CTkFrame(self, height=28, corner_radius=0, fg_color="transparent")
-        legend.pack(fill="x", padx=16, pady=(6, 0))
+        # ---- waveforms ----
+        wf_frame = ctk.CTkFrame(self, fg_color="transparent")
+        wf_frame.pack(fill="x", padx=16, pady=(8, 0))
 
-        ctk.CTkLabel(legend, text="■ MIC", text_color=MIC_COLOR,
-                     font=ctk.CTkFont(size=11)).pack(side="left", padx=(0, 16))
-        ctk.CTkLabel(legend, text="■ SISTEMA", text_color=SISTEMA_COLOR,
-                     font=ctk.CTkFont(size=11)).pack(side="left")
+        self._wf_mic = WaveformWidget(wf_frame, color=MIC_COLOR, label="MIC")
+        self._wf_mic.pack(side="left", fill="both", expand=True, padx=(0, 4))
+
+        self._wf_sys = WaveformWidget(wf_frame, color=SISTEMA_COLOR, label="SISTEMA")
+        self._wf_sys.pack(side="left", fill="both", expand=True)
 
         # ---- transcript ----
         self.textbox = ctk.CTkTextbox(
@@ -177,10 +179,14 @@ class App(ctk.CTk):
             self.is_running = False
             self.toggle_btn.configure(text="▶  Iniciar", fg_color=("#3B8ED0", "#1F6AA5"))
             self.set_status("● Detenido", "#EF5350")
+            self._wf_mic.clear()
+            self._wf_sys.clear()
             self.on_stop()
 
     def _clear(self):
         self._entries.clear()
+        self._wf_mic.clear()
+        self._wf_sys.clear()
         self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
         self.textbox.configure(state="disabled")
@@ -225,6 +231,12 @@ class App(ctk.CTk):
         self.textbox.insert("end", f"{text}\n")
         self.textbox.see("end")
         self.textbox.configure(state="disabled")
+
+    def push_waveform(self, audio, source: str):
+        if source == "MIC":
+            self._wf_mic.push_audio(audio)
+        else:
+            self._wf_sys.push_audio(audio)
 
     def set_status(self, text: str, color: str = "#E0E0E0"):
         self.status_label.configure(text=text, text_color=color)
