@@ -70,6 +70,21 @@ class TranscriptionWorker:
     def enqueue(self, audio: np.ndarray, source: str):
         self._queue.put((audio, source))
 
+    @staticmethod
+    def _denoise(audio: np.ndarray) -> np.ndarray:
+        """Reduccion de ruido espectral estatico para el microfono (noisereduce)."""
+        try:
+            import noisereduce as nr
+            return nr.reduce_noise(
+                y=audio,
+                sr=16000,
+                stationary=True,   # ruido constante: ventilador, AC, etc.
+                prop_decrease=0.75, # agresividad: 0=nada, 1=maximo
+            )
+        except Exception as e:
+            print(f"[WARN] Denoise fallo, usando audio original: {e}")
+            return audio
+
     def _worker(self):
         while self._running:
             item = self._queue.get()
@@ -77,6 +92,9 @@ class TranscriptionWorker:
                 break
             audio, source = item
             try:
+                if source == "MIC":
+                    audio = self._denoise(audio)
+
                 segments, _ = self._model.transcribe(
                     audio,
                     language="es",
