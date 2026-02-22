@@ -1,0 +1,9 @@
+faster-whisper
+pyaudiowpatch
+sounddevice
+customtkinter
+numpy
+scipy
+
+# CUDA 12 (RTX 3050) — instalar despues del resto:
+# pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
