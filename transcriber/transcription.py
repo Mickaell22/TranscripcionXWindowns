@@ -1,8 +1,26 @@
+import os
+import sys
 import queue
 import threading
 import numpy as np
 
 MODEL_SIZE = "medium"
+
+
+def _add_cuda_to_path():
+    """Agrega los DLLs de CUDA instalados via pip al PATH de Windows.
+    sys.executable = venv/Scripts/python.exe → subimos a venv/ para encontrar Lib/site-packages.
+    """
+    scripts_dir = os.path.dirname(sys.executable)          # venv/Scripts
+    venv_dir = os.path.dirname(scripts_dir)                 # venv/
+    nvidia_base = os.path.join(venv_dir, "Lib", "site-packages", "nvidia")
+    if not os.path.isdir(nvidia_base):
+        return
+    for pkg in os.listdir(nvidia_base):
+        bin_dir = os.path.join(nvidia_base, pkg, "bin")
+        if os.path.isdir(bin_dir) and bin_dir not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+            print(f"[CUDA] PATH += {bin_dir}")
 
 
 class TranscriptionWorker:
@@ -16,6 +34,7 @@ class TranscriptionWorker:
         self._model = None
 
     def load_model(self, progress_callback=None):
+        _add_cuda_to_path()
         from faster_whisper import WhisperModel
 
         if progress_callback:
@@ -25,7 +44,7 @@ class TranscriptionWorker:
             self._model = WhisperModel(
                 MODEL_SIZE,
                 device="cuda",
-                compute_type="int8_float16",
+                compute_type="float16",
             )
             if progress_callback:
                 progress_callback("Modelo listo (CUDA)")
@@ -63,8 +82,12 @@ class TranscriptionWorker:
                     language="es",
                     beam_size=5,
                     vad_filter=True,
-                    vad_parameters={"min_silence_duration_ms": 500},
+                    vad_parameters=dict(
+                        min_silence_duration_ms=2000,
+                        speech_pad_ms=400,
+                    ),
                 )
+                # segments es un generador — consumirlo completo para ejecutar la transcripcion
                 text = " ".join(seg.text.strip() for seg in segments).strip()
                 if text:
                     self.on_result(text, source)
