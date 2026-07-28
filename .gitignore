@@ -6,3 +6,6 @@ __pycache__/
 *.log
 transcripts/
 models/
+
+# Configuracion local y variables de entorno reales
+.claude/
